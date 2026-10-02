@@ -1,0 +1,181 @@
+<!doctype html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow">
+<title>נזכר · שאלון קצר</title>
+<style>
+  :root{
+    --bg:#F5F1E6; --ink:#1C1A17; --soft:#6B655C; --accent:#2F5D50;
+    --border:#E5E1D8; --surface:#FFFFFF; --error:#A33B2E;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#0A0C0B; --ink:#E8E2D3; --soft:#8E8879; --border:#232926; --surface:#121614; --accent:#54A488; --error:#E08A7D; }
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;
+    line-height:1.7; padding:0 20px 80px;
+  }
+  main{max-width:640px;margin:0 auto;}
+  h1{font-size:26px;margin:44px 0 4px;}
+  .sub{color:var(--soft);margin:0 0 28px;font-size:15px;}
+  fieldset{
+    background:var(--surface);border:1px solid var(--border);border-radius:14px;
+    padding:16px 20px;margin:0 0 16px;
+  }
+  legend{font-weight:600;font-size:16px;padding-inline:6px;}
+  label.opt{display:flex;gap:10px;align-items:flex-start;padding:8px 0;font-size:15.5px;cursor:pointer;}
+  textarea{
+    width:100%;min-height:84px;margin-top:8px;padding:10px 12px;font:inherit;font-size:15.5px;
+    color:var(--ink);background:var(--bg);border:1px solid var(--border);border-radius:10px;resize:vertical;
+  }
+  .hint{font-size:13px;color:var(--soft);margin:6px 0 0;}
+  .btn{
+    font:inherit;font-size:16px;font-weight:600;padding:13px 26px;border-radius:999px;border:0;
+    background:var(--accent);color:var(--bg);cursor:pointer;
+  }
+  .btn[disabled]{opacity:.55;cursor:default;}
+  #msg{margin:18px 0 0;font-size:15.5px;}
+  #msg.error{color:var(--error);}
+  .done{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px;}
+</style>
+</head>
+<body>
+<main>
+  <h1>שאלון קצר</h1>
+  <p class="sub" id="sub">אנחנו טוענים את השאלות.</p>
+  <form id="form" hidden novalidate></form>
+  <p id="msg" role="status" aria-live="polite"></p>
+</main>
+<script>
+(function () {
+  'use strict';
+
+  // כתובת פונקציית ה-survey ב-Supabase. הפונקציה פתוחה (בלי JWT) והאימות הוא
+  // הטוקן שבקישור, ולכן אין כאן מפתח.
+  var API = 'https://bijcqijyrpymlhaatupg.supabase.co/functions/v1/survey';
+
+  var sub = document.getElementById('sub');
+  var form = document.getElementById('form');
+  var msg = document.getElementById('msg');
+
+  var ERRORS = {
+    invalid_link: 'הקישור הזה לא תקין. אפשר לפתוח אותו שוב מהמייל.',
+    expired: 'הקישור פג תוקף (הוא פעיל 14 ימים). אפשר לשלוח דיווח חדש מההגדרות באפליקציה.',
+    already_answered: 'כבר ענית על השאלון הזה, תודה.',
+    invalid_answers: 'חסרה תשובה באחת השאלות. בדוק ונסה שוב.',
+    failed: 'משהו השתבש אצלנו. נסה שוב בעוד רגע.'
+  };
+
+  // הטוקן נמצא אחרי # כדי שלא יישלח לשרת ולא יירשם בלוגים. מוציאים אותו
+  // מהכתובת מיד, כדי שלא יישאר בהיסטוריה או בשיתוף של הדף.
+  var match = /(?:^#|&)t=([A-Za-z0-9_-]{43})(?:&|$)/.exec(location.hash);
+  var token = match ? match[1] : '';
+  if (token) history.replaceState(null, '', location.pathname);
+
+  function show(text, isError) {
+    msg.textContent = text;
+    msg.className = isError ? 'error' : '';
+  }
+
+  function call(body) {
+    return fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    }).then(function (res) {
+      return res.json().catch(function () { return {}; }).then(function (data) {
+        return { ok: res.ok, data: data };
+      });
+    });
+  }
+
+  function fail(code) {
+    sub.textContent = '';
+    form.hidden = true;
+    show(ERRORS[code] || ERRORS.failed, true);
+  }
+
+  if (!token) { fail('invalid_link'); return; }
+
+  function el(tag, props, children) {
+    var node = document.createElement(tag);
+    Object.keys(props || {}).forEach(function (key) { node[key] = props[key]; });
+    (children || []).forEach(function (child) { node.appendChild(child); });
+    return node;
+  }
+
+  function render(questions) {
+    sub.textContent = 'אפשר לענות בקצרה, זה לוקח כדקה. כל מה שתכתוב נשלח רק לבעל האפליקציה.';
+
+    questions.forEach(function (q, i) {
+      var legend = el('legend', { textContent: (i + 1) + '. ' + q.text });
+      var set = el('fieldset', {}, [legend]);
+      set.dataset.index = String(i);
+
+      (q.options || []).forEach(function (option) {
+        var radio = el('input', { type: 'radio', name: 'q' + i, value: option });
+        set.appendChild(el('label', { className: 'opt' }, [radio, el('span', { textContent: option })]));
+      });
+
+      if (q.agentFree || q.free) {
+        var area = el('textarea', { name: 'text' + i, maxLength: 300 });
+        area.setAttribute('aria-label', q.agentFree ? 'התשובה שלך' : 'רוצה להוסיף משהו? (לא חובה)');
+        set.appendChild(area);
+        set.appendChild(el('p', { className: 'hint', textContent: q.agentFree ? 'שאלה פתוחה, אפשר לכתוב במילים שלך.' : 'אפשר להוסיף פרט, לא חובה.' }));
+      }
+      form.appendChild(set);
+    });
+
+    var submit = el('button', { type: 'submit', className: 'btn', textContent: 'שליחה' });
+    form.appendChild(submit);
+    form.hidden = false;
+
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+      var answers = [];
+
+      for (var i = 0; i < questions.length; i++) {
+        var q = questions[i];
+        var choiceNode = form.querySelector('input[name="q' + i + '"]:checked');
+        var textNode = form.querySelector('textarea[name="text' + i + '"]');
+        var text = textNode ? textNode.value.trim() : '';
+
+        if (q.agentFree && !text) { show('חסרה תשובה בשאלה ' + (i + 1) + '.', true); return; }
+        if (!q.agentFree && !choiceNode) { show('חסרה תשובה בשאלה ' + (i + 1) + '.', true); return; }
+        answers.push({ choice: choiceNode ? choiceNode.value : '', text: text });
+      }
+
+      submit.disabled = true;
+      show('שולח...', false);
+      call({ action: 'answer', token: token, answers: answers }).then(function (result) {
+        if (result.ok) {
+          form.hidden = true;
+          sub.textContent = '';
+          msg.className = '';
+          msg.textContent = '';
+          var done = el('div', { className: 'done' }, [el('strong', { textContent: 'תודה, קיבלנו.' }), el('p', { textContent: 'התשובות הגיעו אלינו ואנחנו בודקים. לא נשלח תזכורת.' })]);
+          document.querySelector('main').appendChild(done);
+        } else {
+          submit.disabled = false;
+          show(ERRORS[result.data.error] || ERRORS.failed, true);
+        }
+      }).catch(function () {
+        submit.disabled = false;
+        show(ERRORS.failed, true);
+      });
+    });
+  }
+
+  call({ action: 'get', token: token }).then(function (result) {
+    if (!result.ok || !Array.isArray(result.data.questions)) { fail(result.data.error); return; }
+    render(result.data.questions);
+  }).catch(function () { fail('failed'); });
+})();
+</script>
+</body>
+</html>
