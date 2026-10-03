@@ -7,41 +7,51 @@
 <meta name="robots" content="noindex, nofollow">
 <title>נזכר · שאלון קצר</title>
 <style>
+  /* אותם טוקנים כמו באפליקציה (src/theme/palette.ts, ספריית 2000): החדר הוא
+     הרקע, והדף הוא מחברת עם שורות שרטוט כחולות. הדף נשאר נייר בהיר גם בלילה,
+     כמו באפליקציה, ורק החדר משתנה. אין גופנים חיצוניים: הדף לא פונה לשום
+     שרת מלבד פונקציית ה-survey. */
   :root{
-    --bg:#F5F1E6; --ink:#1C1A17; --soft:#6B655C; --accent:#2F5D50;
-    --border:#E5E1D8; --surface:#FFFFFF; --error:#A33B2E;
+    --ground:#E4E1D6; --paper:#FBFAF5; --paper-edge:#D8D4C6; --rule:#A8C4DE;
+    --ink:#16283A; --ink-soft:#4A5866; --blue:#1F4E79; --red:#B4342C;
+    --line:26px;
   }
   @media (prefers-color-scheme: dark){
-    :root{ --bg:#0A0C0B; --ink:#E8E2D3; --soft:#8E8879; --border:#232926; --surface:#121614; --accent:#54A488; --error:#E08A7D; }
+    :root{ --ground:#1A1F21; --paper:#E4E1D7; --paper-edge:#BAB6A8; --rule:#8FA9C0; --ink:#14222F; --ink-soft:#46525E; --blue:#3A78AC; }
   }
   *{box-sizing:border-box;}
   body{
-    margin:0; background:var(--bg); color:var(--ink);
-    font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;
-    line-height:1.7; padding:0 20px 80px;
+    margin:0; background:var(--ground); color:var(--ink);
+    font-family:'Assistant','Segoe UI',Roboto,Arial,sans-serif;
+    font-size:17px; line-height:var(--line); padding:20px 14px 60px;
   }
-  main{max-width:640px;margin:0 auto;}
-  h1{font-size:26px;margin:44px 0 4px;}
-  .sub{color:var(--soft);margin:0 0 28px;font-size:15px;}
-  fieldset{
-    background:var(--surface);border:1px solid var(--border);border-radius:14px;
-    padding:16px 20px;margin:0 0 16px;
+  main{
+    max-width:640px; margin:0 auto; padding:var(--line) 22px calc(var(--line) * 2);
+    background-color:var(--paper); border:1px solid var(--paper-edge); border-radius:4px;
+    background-image:repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--line) - 1px), var(--rule) calc(var(--line) - 1px), var(--rule) var(--line));
+    background-position:0 var(--line); background-origin:border-box;
   }
-  legend{font-weight:600;font-size:16px;padding-inline:6px;}
-  label.opt{display:flex;gap:10px;align-items:flex-start;padding:8px 0;font-size:15.5px;cursor:pointer;}
+  h1{font-family:'David Libre','David','Times New Roman',serif;font-size:28px;line-height:calc(var(--line) * 2);margin:0;}
+  .sub{color:var(--ink-soft);margin:0 0 var(--line);font-size:15px;line-height:var(--line);}
+  fieldset{border:0;padding:0;margin:0 0 var(--line);min-inline-size:0;}
+  legend{font-weight:700;padding:0;margin:0;line-height:var(--line);}
+  label.opt{display:flex;gap:10px;align-items:center;min-height:var(--line);padding:0;cursor:pointer;}
+  label.opt input{margin:0;accent-color:var(--blue);}
   textarea{
-    width:100%;min-height:84px;margin-top:8px;padding:10px 12px;font:inherit;font-size:15.5px;
-    color:var(--ink);background:var(--bg);border:1px solid var(--border);border-radius:10px;resize:vertical;
+    display:block;width:100%;height:calc(var(--line) * 3);margin:0;padding:0;font:inherit;line-height:var(--line);
+    color:var(--ink);background:transparent;border:0;border-radius:0;resize:none;
   }
-  .hint{font-size:13px;color:var(--soft);margin:6px 0 0;}
+  textarea:focus{outline:0;}
+  .hint{font-size:13px;color:var(--ink-soft);margin:0;line-height:var(--line);}
   .btn{
-    font:inherit;font-size:16px;font-weight:600;padding:13px 26px;border-radius:999px;border:0;
-    background:var(--accent);color:var(--bg);cursor:pointer;
+    font:inherit;font-weight:700;height:calc(var(--line) * 2);padding:0 28px;border-radius:4px;border:0;
+    background:var(--blue);color:var(--paper);cursor:pointer;
   }
-  .btn[disabled]{opacity:.55;cursor:default;}
-  #msg{margin:18px 0 0;font-size:15.5px;}
-  #msg.error{color:var(--error);}
-  .done{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px;}
+  .btn[disabled]{opacity:.6;cursor:default;}
+  #msg{margin:var(--line) 0 0;min-height:var(--line);}
+  #msg.error{color:var(--red);}
+  .done{padding:0;}
+  .done p{margin:0;}
 </style>
 </head>
 <body>
